@@ -14,11 +14,6 @@ from .config import LOG_DIR
 logger = logging.getLogger()
 
 
-def log_namer(default_name):
-    # Rotated log files will be named 'vorta.log.[timestamp].log'
-    return default_name + '.log'
-
-
 def init_logger(background=False):
     logger.setLevel(logging.DEBUG)
     logging.getLogger('peewee').setLevel(logging.INFO)
@@ -29,7 +24,6 @@ def init_logger(background=False):
 
     # create handlers
     fh = TimedRotatingFileHandler(LOG_DIR / 'vorta.log', when='d', interval=1, backupCount=5)
-    fh.namer = log_namer
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
