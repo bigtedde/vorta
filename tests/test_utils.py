@@ -5,6 +5,7 @@ from vorta.keyring.abc import VortaKeyring
 from vorta.utils import (
     find_best_unit_for_sizes,
     get_path_datasize,
+    is_system_tray_available,
     normalize_path,
     pretty_bytes,
 )
@@ -88,6 +89,7 @@ def test_pretty_bytes_metric_large():
     assert s == "1000000.0 YB"
 
 
+# tagged: new test
 def test_normalize_path():
     # Test that path is normalized for macOS, but does nothing for other platforms.
     input_path = '/Users/username/caf\u00e9/file.txt'
@@ -101,6 +103,7 @@ def test_normalize_path():
         assert actual_output == input_path
 
 
+# tagged: new test
 def test_get_path_datasize(tmpdir):
     # Create a temporary directory for testing
     test_dir = tmpdir.mkdir("test_dir")
@@ -128,3 +131,12 @@ def test_get_path_datasize(tmpdir):
     data_size, files_count = get_path_datasize(str(excluded_dir), exclude_patterns)
     assert data_size == 0
     assert files_count == 0
+
+
+# tagged: new test
+def test_is_system_tray_available(mocker):
+    # sanity check to ensure proper behavior
+    mocker.patch('PyQt6.QtWidgets.QSystemTrayIcon.isSystemTrayAvailable', return_value=False)
+    assert is_system_tray_available() is False
+    mocker.patch('PyQt6.QtWidgets.QSystemTrayIcon.isSystemTrayAvailable', return_value=True)
+    assert is_system_tray_available() is True

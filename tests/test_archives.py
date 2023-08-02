@@ -1,4 +1,5 @@
 from collections import namedtuple
+from datetime import datetime
 
 import psutil
 import pytest
@@ -196,3 +197,33 @@ def test_archive_rename(qapp, qtbot, mocker, borg_json_output):
     mocker.patch.object(vorta.views.archive_tab.QInputDialog, 'getText', return_value=(new_archive_name, True))
     tab.rename_action()
     qtbot.waitUntil(lambda: tab.mountErrors.text() == exp_text, **pytest._wait_defaults)
+
+
+# tagged: new test
+def test_archive_copy(qapp, qtbot):
+    main = qapp.main_window
+    tab = main.archiveTab
+    main.tabWidget.setCurrentIndex(3)
+
+    # init_db in conftest.py already creates 2 archive table rows named "test-archive" and "test-archive1"
+    # so here, we create a third row named "test-archive-copy" and test copying the name
+    test_archive = ArchiveModel(snapshot_id='99999', name='test-archive-copy', time=datetime(2000, 1, 1, 0, 0), repo=1)
+    test_archive.save()
+
+    tab.populate_from_profile()
+    qtbot.waitUntil(lambda: tab.archiveTable.rowCount() == 3, **pytest._wait_defaults)
+
+    # test 'archive_copy()' without passing it an index
+    tab.archiveTable.selectRow(2)
+    tab.archive_copy()
+    clipboard = qapp.clipboard().mimeData()
+    assert clipboard.hasText()
+    assert clipboard.text() == "test-archive-copy"
+
+    # test 'archive_copy()' by passing it an index to copy
+    tab.archiveTable.selectRow(0)
+    index = tab.archiveTable.selectionModel().selectedRows()[0]
+    tab.archive_copy(index)
+    clipboard = qapp.clipboard().mimeData()
+    assert clipboard.hasText()
+    assert clipboard.text() == "test-archive"
