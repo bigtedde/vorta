@@ -207,7 +207,7 @@ def test_archive_copy(qapp, qtbot):
 
     # init_db in conftest.py already creates 2 archive table rows named "test-archive" and "test-archive1"
     # so here, we create a third row named "test-archive-copy" and test copying the name
-    test_archive = ArchiveModel(snapshot_id='99999', name='test-archive-copy', time=datetime(2000, 1, 1, 0, 0), repo=1)
+    test_archive = ArchiveModel(snapshot_id='99999', name='test-archive2', time=datetime(2000, 1, 1, 0, 0), repo=1)
     test_archive.save()
 
     tab.populate_from_profile()
@@ -218,12 +218,12 @@ def test_archive_copy(qapp, qtbot):
     tab.archive_copy()
     clipboard = qapp.clipboard().mimeData()
     assert clipboard.hasText()
-    assert clipboard.text() == "test-archive-copy"
+    assert clipboard.text() == "test-archive2"
 
     # test 'archive_copy()' by passing it an index to copy
-    tab.archiveTable.selectRow(0)
+    tab.archiveTable.selectRow(1)
     index = tab.archiveTable.selectionModel().selectedRows()[0]
     tab.archive_copy(index)
     clipboard = qapp.clipboard().mimeData()
     assert clipboard.hasText()
-    assert clipboard.text() == "test-archive"
+    assert clipboard.text() == "test-archive1"
