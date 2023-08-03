@@ -88,6 +88,7 @@ def test_check(qapp, mocker, borg_json_output, qtbot):
     tab = main.archiveTab
     main.tabWidget.setCurrentIndex(3)
     tab.populate_from_profile()
+    tab.archiveTable.selectRow(0)
 
     stdout, stderr = borg_json_output('check')
     popen_result = mocker.MagicMock(stdout=stdout, stderr=stderr, returncode=0)
@@ -206,10 +207,9 @@ def test_archive_copy(qapp, qtbot):
     main.tabWidget.setCurrentIndex(3)
 
     # init_db in conftest.py already creates 2 archive table rows named "test-archive" and "test-archive1"
-    # so here, we create a third row named "test-archive-copy" and test copying the name
+    # so here, we create a third row named "test-archive2" and test copying the name
     test_archive = ArchiveModel(snapshot_id='99999', name='test-archive2', time=datetime(2000, 1, 1, 0, 0), repo=1)
     test_archive.save()
-
     tab.populate_from_profile()
     qtbot.waitUntil(lambda: tab.archiveTable.rowCount() == 3, **pytest._wait_defaults)
 
@@ -227,3 +227,18 @@ def test_archive_copy(qapp, qtbot):
     clipboard = qapp.clipboard().mimeData()
     assert clipboard.hasText()
     assert clipboard.text() == "test-archive1"
+
+
+def test_refresh_archive_info(qapp, qtbot, mocker, borg_json_output):
+    main = qapp.main_window
+    tab = main.archiveTab
+    main.tabWidget.setCurrentIndex(3)
+    tab.populate_from_profile()
+    tab.archiveTable.selectRow(0)
+
+    stdout, stderr = borg_json_output('info')
+    popen_result = mocker.MagicMock(stdout=stdout, stderr=stderr, returncode=0)
+    mocker.patch.object(vorta.borg.borg_job, 'Popen', return_value=popen_result)
+
+    qtbot.mouseClick(tab.bRefreshArchive, QtCore.Qt.MouseButton.LeftButton)
+    qtbot.waitUntil(lambda: tab.mountErrors.text() == 'Refreshed archives.', **pytest._wait_defaults)
