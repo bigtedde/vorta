@@ -238,22 +238,28 @@ def test_refresh_archive_info(qapp, qtbot, mocker, borg_json_output):
     popen_result = mocker.MagicMock(stdout=stdout, stderr=stderr, returncode=0)
     mocker.patch.object(vorta.borg.borg_job, 'Popen', return_value=popen_result)
 
-    qtbot.mouseClick(tab.bRefreshArchive, QtCore.Qt.MouseButton.LeftButton)
+    with qtbot.waitSignal(tab.bRefreshArchive.clicked, timeout=5000):
+        qtbot.mouseClick(tab.bRefreshArchive, QtCore.Qt.MouseButton.LeftButton)
+
     qtbot.waitUntil(lambda: tab.mountErrors.text() == 'Refreshed archives.', **pytest._wait_defaults)
 
 
 # do nothing for now, waiting for `double click to rename archive` functionality
-def test_double_click(qapp, qtbot, borg_json_output):
+def test_double_click(qapp, qtbot, mocker, borg_json_output):
     main = qapp.main_window
     tab = main.archiveTab
     main.tabWidget.setCurrentIndex(3)
+
     tab.populate_from_profile()
     qtbot.waitUntil(lambda: tab.archiveTable.rowCount() == 2, **pytest._wait_defaults)
 
     item = tab.archiveTable.item(0, 4)
     assert item is not None
-    cell_rect = tab.archiveTable.visualItemRect(item)
-    center_point = cell_rect.center()
+    archive_name_cell = tab.archiveTable.visualItemRect(item)
+    center_of_cell = archive_name_cell.center()
 
     # Perform a mouse double click at the center of the archive name cell
-    qtbot.mouseDClick(tab.archiveTable.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=center_point)
+    with qtbot.waitSignal(tab.archiveTable.cellDoubleClicked, timeout=1000):
+        # Through testing I learned one must single click first, then double click name field to trigger emit
+        qtbot.mouseClick(tab.archiveTable.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=center_of_cell)
+        qtbot.mouseDClick(tab.archiveTable.viewport(), QtCore.Qt.MouseButton.LeftButton, pos=center_of_cell)
