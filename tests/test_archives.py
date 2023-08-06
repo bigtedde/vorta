@@ -244,8 +244,8 @@ def test_refresh_archive_info(qapp, qtbot, mocker, borg_json_output):
     qtbot.waitUntil(lambda: tab.mountErrors.text() == 'Refreshed archives.', **pytest._wait_defaults)
 
 
-# do nothing for now, waiting for `double click to rename archive` functionality
-def test_double_click(qapp, qtbot, mocker, borg_json_output):
+# can be used to test inline edit when that functionality is added
+def test_double_click(qapp, qtbot, borg_json_output):
     main = qapp.main_window
     tab = main.archiveTab
     main.tabWidget.setCurrentIndex(3)
