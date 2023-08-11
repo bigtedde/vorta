@@ -1,66 +1,53 @@
 import os
 import sys
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
-import vorta.store.models
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import QCheckBox, QFormLayout
 
 
-def test_autostart(qapp, qtbot):
-    """Check if file exists only on Linux, otherwise just check it doesn't crash"""
-
+@pytest.mark.skipif(sys.platform != "linux", reason="test only applicable on Linux")
+def test_autostart_linux(qapp, qtbot):
     setting = "Automatically start Vorta at login"
 
+    # ensure file is present when autostart is enabled
     _click_toggle_setting(setting, qapp, qtbot)
+    autostart_path = (
+        Path(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~") + '/.config') + "/autostart") / "vorta.desktop"
+    )
+    qtbot.waitUntil(lambda: autostart_path.exists(), **pytest._wait_defaults)
+    with open(autostart_path) as desktop_file:
+        desktop_file_text = desktop_file.read()
+    assert desktop_file_text.startswith("[Desktop Entry]")
 
-    if sys.platform == 'linux':
-        autostart_path = (
-            Path(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~") + '/.config') + "/autostart")
-            / "vorta.desktop"
-        )
-        qtbot.waitUntil(lambda: autostart_path.exists(), **pytest._wait_defaults)
-
-        with open(autostart_path) as desktop_file:
-            desktop_file_text = desktop_file.read()
-
-        assert desktop_file_text.startswith("[Desktop Entry]")
-
+    # ensure file is removed when autostart is disabled
     _click_toggle_setting(setting, qapp, qtbot)
-
     if sys.platform == 'linux':
         assert not os.path.exists(autostart_path)
 
 
 @pytest.mark.skipif(sys.platform != 'darwin', reason="Full Disk Access check only on Darwin")
 def test_check_full_disk_access(qapp, qtbot, mocker):
-    """Enables/disables 'Check for Full Disk Access on startup' setting and ensures functionality"""
-
+    # tests "full disk access" check on darwin machines
     setting = "Check for Full Disk Access on startup"
 
-    # Set mocks for setting enabled
-    mocker.patch.object(vorta.store.models.SettingsModel, "get", return_value=Mock(value=True))
     mocker.patch('pathlib.Path.exists', return_value=True)
     mocker.patch('os.access', return_value=False)
     mock_qmessagebox = mocker.patch('vorta.application.QMessageBox')
 
-    # See that pop-up occurs
+    # performing check is default, so we see that 'full disk access' message appears
     qapp.check_darwin_permissions()
     mock_qmessagebox.assert_called()
+    expected_text = "Vorta needs Full Disk Access for complete Backups"
+    mock_qmessagebox.return_value.setText.assert_called_once_with(expected_text)
 
-    # Reset mocks for setting disabled
     mock_qmessagebox.reset_mock()
-    mocker.patch.object(vorta.store.models.SettingsModel, "get", return_value=Mock(value=False))
 
-    # See that pop-up does not occur
+    # toggle setting to disable check, see that pop-up does not occur
+    _click_toggle_setting(setting, qapp, qtbot)
     qapp.check_darwin_permissions()
     mock_qmessagebox.assert_not_called()
-
-    # Checks that setting doesn't crash program when click toggled on then off"""
-    _click_toggle_setting(setting, qapp, qtbot)
-    _click_toggle_setting(setting, qapp, qtbot)
 
 
 def _click_toggle_setting(setting, qapp, qtbot):
